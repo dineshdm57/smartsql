@@ -1,0 +1,5 @@
+Schema: Telemetry
+Table: spans
+- trace_id STRING REQUIRED
+- agent_name STRING REQUIRED
+- cost_usd NUMERIC REQUIRED
