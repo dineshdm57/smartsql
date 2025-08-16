@@ -1,0 +1,37 @@
+name: SmartSQL CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    env:
+      SMARTSQL_OFFLINE: "1"
+      PROVIDER: "gemini"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      - name: CLI smokes
+        run: |
+          PYTHONPATH=src python src/smartsql/run_router_smoketest.py
+          PYTHONPATH=src python src/smartsql/run_graph_smoketest.py
+      - name: API health smoke
+        run: |
+          nohup python -m uvicorn smartsql.api:app --host 127.0.0.1 --port 8000 --lifespan off & 
+          sleep 2
+          curl -s http://127.0.0.1:8000/health | tee health.json
+          python - <<'PY'
+import json,sys
+d=json.load(open("health.json"))
+assert d.get("status")=="ok", d
+print("health ok:", d)
+PY
